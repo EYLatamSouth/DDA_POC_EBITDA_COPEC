@@ -3,6 +3,7 @@ from pdfminer.high_level import extract_pages, extract_text
 from pdfminer.layout import LTTextContainer, LTChar, LTRect, LTFigure
 # To extract text from tables in PDF
 import pdfplumber
+import tabula
 
 # Create a function to extract text
 
@@ -56,8 +57,8 @@ def table_converter(table):
 # Find the PDF path
 pdf_path = r"./Press Release 06-2023.pdf"
 
-# create a PDF file object
-pdfFileObj = open(pdf_path, 'rb')
+# Open the pdf file
+pdf = pdfplumber.open(pdf_path)
 
 # Create the dictionary to extract text from each image
 text_per_page = {}
@@ -67,24 +68,12 @@ for pagenum, page in enumerate(extract_pages(pdf_path)):
     # Initialize the variables needed for the text extraction from the page
     page_text = []
     line_format = []
-    text_from_images = []
-    text_from_tables = []
     page_content = []
-    # Initialize the number of the examined tables
-    table_num = 0
-    first_element= True
-    table_extraction_flag= False
-    # Open the pdf file
-    pdf = pdfplumber.open(pdf_path)
-    # Find the examined page
-    page_tables = pdf.pages[pagenum]
-    # Find the number of tables on the page
-    tables = page_tables.find_tables()
-
-
     # Find all the elements
     page_elements = [(element.y1, element) for element in page._objs]
 
+    # # Check the elements for tables
+    page_tables = tabula.read_pdf(pdf_path, pages=pagenum+1, multiple_tables=True)
     # Find the elements that composed a page
     for i,component in enumerate(page_elements):
         # Extract the position of the top side of the element in the PDF
@@ -94,57 +83,22 @@ for pagenum, page in enumerate(extract_pages(pdf_path)):
         
         # Check if the element is a text element
         if isinstance(element, LTTextContainer):
-            # Check if the text appeared in a table
-            if table_extraction_flag == False:
-                # Use the function to extract the text and format for each text element
-                (line_text, format_per_line) = text_extraction(element)
-                # Append the text of each line to the page text
-                page_text.append(line_text)
-                # Append the format for each line containing text
-                line_format.append(format_per_line)
-                page_content.append(line_text)
-            else:
-                # Omit the text that appeared in a table
-                pass
+            # Use the function to extract the text and format for each text element
+            (line_text, format_per_line) = text_extraction(element)
+            # Append the text of each line to the page text
+            page_text.append(line_text)
+            # Append the format for each line containing text
+            line_format.append(format_per_line)
+            page_content.append(line_text)
 
-        # # Check the elements for tables
-        # if isinstance(element, LTRect):
-        #     # If the first rectangular element
-        #     if first_element == True and (table_num+1) <= len(tables):
-        #         # Find the bounding box of the table
-        #         lower_side = page.bbox[3] - tables[table_num].bbox[3]
-        #         upper_side = element.y1 
-        #         # Extract the information from the table
-        #         table = extract_table(pdf_path, pagenum, table_num)
-        #         # Convert the table information in structured string format
-        #         table_string = table_converter(table)
-        #         # Append the table string into a list
-        #         text_from_tables.append(table_string)
-        #         page_content.append(table_string)
-        #         # Set the flag as True to avoid the content again
-        #         table_extraction_flag = True
-        #         # Make it another element
-        #         first_element = False
-        #         # Add a placeholder in the text and format lists
-        #         page_text.append('table')
-        #         line_format.append('table')
-
-        #     # Check if we already extracted the tables from the page
-        #     if element.y0 >= lower_side and element.y1 <= upper_side:
-        #         pass
-        #     elif not isinstance(page_elements[i+1][1], LTRect):
-        #         table_extraction_flag = False
-        #         first_element = True
-        #         table_num+=1
 
 
     # Create the key of the dictionary
     dctkey = 'Page_'+str(pagenum)
     # Add the list of list as the value of the page key
-    text_per_page[dctkey]= [page_text, line_format, text_from_images,text_from_tables, page_content]
-
-# Closing the pdf file object
-pdfFileObj.close()
+    text_per_page[dctkey]= [page_text, line_format, page_tables, page_content]
 
 # Display the content of the first page
-print(text_per_page['Page_0'][4])
+print(text_per_page['Page_0'][0])
+# Display tables from the first page
+print(text_per_page['Page_0'][2])
