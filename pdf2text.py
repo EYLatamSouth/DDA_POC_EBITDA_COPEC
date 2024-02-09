@@ -146,6 +146,5 @@ for pagenum, page in enumerate(extract_pages(pdf_path)):
 # Closing the pdf file object
 pdfFileObj.close()
 
-# Display the content of the page
-# result = ''.join(text_per_page['Page_1'][4])
-# print(result)
+# Display the content of the first page
+print(text_per_page['Page_0'][4])
