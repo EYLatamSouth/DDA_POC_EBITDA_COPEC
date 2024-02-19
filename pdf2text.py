@@ -5,6 +5,8 @@ from pdfminer.layout import LTTextContainer, LTChar, LTRect, LTFigure
 import pdfplumber
 import tabula
 
+from openai_scraper import OpenAI
+
 # Create a function to extract text
 
 def text_extraction(element):
@@ -62,6 +64,10 @@ pdf = pdfplumber.open(pdf_path)
 
 # Create the dictionary to extract text from each image
 text_per_page = {}
+
+# Create an instance of the OpenAI LLM model class
+llm = OpenAI()
+
 # We extract the pages from the PDF
 for pagenum, page in enumerate(extract_pages(pdf_path)):
     
@@ -73,7 +79,9 @@ for pagenum, page in enumerate(extract_pages(pdf_path)):
     page_elements = [(element.y1, element) for element in page._objs]
 
     # # Check the elements for tables
-    page_tables = tabula.read_pdf(pdf_path, pages=pagenum+1, multiple_tables=True)
+    # page_tables = tabula.read_pdf(pdf_path, pages=pagenum+1, multiple_tables=True) # Uncomment if java is installed for table extraction
+    page_tables = []
+
     # Find the elements that composed a page
     for i,component in enumerate(page_elements):
         # Extract the position of the top side of the element in the PDF
@@ -97,8 +105,12 @@ for pagenum, page in enumerate(extract_pages(pdf_path)):
     dctkey = 'Page_'+str(pagenum)
     # Add the list of list as the value of the page key
     text_per_page[dctkey]= [page_text, line_format, page_tables, page_content]
+    break
 
 # Display the content of the first page
-print(text_per_page['Page_0'][0])
+text_to_extract = text_per_page['Page_0'][0][8]
+print(text_to_extract)
+# Get the response from the LLM model for the extracted text
+print(llm.get_response(text_to_extract))
 # Display tables from the first page
 print(text_per_page['Page_0'][2])
